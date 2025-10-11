@@ -46,9 +46,15 @@ async function verifyToken(authHeader) {
   const token = getToken(authHeader)
   const jwt = jsonwebtoken.decode(token, { complete: true })
 
-  // TODO: Implement token verification
-  return undefined;
+  if (!jwt) {
+    throw new Error("Invalid token");
+  }
+
+  const cert = getCertificate(jwt.header.kid);
+
+  return jsonwebtoken.verify(token, cert, { algorithms: ['RS256'] });
 }
+
 
 function getToken(authHeader) {
   if (!authHeader) throw new Error('No authentication header')
@@ -60,4 +66,17 @@ function getToken(authHeader) {
   const token = split[1]
 
   return token
+}
+
+async function getCertificate(key_id) {
+  // Retrieve the certificate from endpoint
+  const response = await Axios.get(jwksUrl);
+  const keys = response.data.keys;
+  const signingKey = keys.find(key => key.kid === key_id);
+
+  if(!signingKey) {
+    throw new Error("Invalid signing key");
+  }
+  const cert = signingKey.x5c[0];
+  return `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
 }
