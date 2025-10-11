@@ -1,3 +1,7 @@
+import { createLogger } from '../../utils/logger.mjs'
+
+const logger = createLogger('http')
+
 export function handler(event) {
   const todoId = event.pathParameters.todoId
 
