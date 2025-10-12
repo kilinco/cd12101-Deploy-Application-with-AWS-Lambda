@@ -15,17 +15,21 @@ export class TodoAccess {
     this.dynamoDbClient = DynamoDBDocument.from(this.documentClient)
   }
 
-  async getAllTodos() {
-    logger.info('Getting all todos')
+  async getAllTodos(userId) {
+    logger.info(`Getting all todos for ${userId}`)
 
-    const result = await this.dynamoDbClient.scan({
-      TableName: this.todosTable
+    const result = await this.dynamoDbClient.query({
+      TableName: this.todosTable,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId
+      }
     })
     return result.Items
   }
 
   async createTodo(todo) {
-    logger.info(`Creating a todo with id ${todo.id}`)
+    logger.info("Creating a todo item", todo)
     await this.dynamoDbClient.put({
       TableName: this.todosTable,
       Item: todo

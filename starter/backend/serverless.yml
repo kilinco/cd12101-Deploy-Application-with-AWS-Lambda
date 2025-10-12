@@ -2,8 +2,23 @@ service: serverless-todo-app
 
 plugins:
   - serverless-iam-roles-per-function
+  - serverless-dynamodb
+  - serverless-offline
 
 frameworkVersion: '4'
+
+custom:
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  serverless-dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+  serverless-offline:
+    httpPort: 3003
 
 provider:
   name: aws
@@ -18,9 +33,19 @@ provider:
   environment:
     TODOS_TABLE: todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    FILES_TABLE: files-${self:provider.stage}
-    FILES_S3_BUCKET: todo-files-${self:provider.stage}
+    # FILES_TABLE: files-${self:provider.stage}
+    # FILES_S3_BUCKET: todo-files-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
+
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "xray:PutTraceSegments"
+            - "xray:PutTelemetryRecords"
+          Resource:
+            - "*"
 
 functions:
 
@@ -42,12 +67,6 @@ functions:
         Action:
           - dynamodb:Scan
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: "Allow"
-        Action:
-          - "xray:PutTraceSegments"
-          - "xray:PutTelemetryRecords"
-        Resource:
-          - "*"
 
 
   # TODO: Configure this function
@@ -61,7 +80,12 @@ functions:
           cors: true
           request:
             schemas:
-              application/json: ${file(models/create-todo-request.json)}
+              application/json: ${file(src/models/create-todo-request.json)}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   UpdateTodo:
@@ -72,18 +96,15 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
+          request:
+            schemas:
+              application/json: ${file(src/models/update-todo-request.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:GetItem
           - dynamodb:UpdateItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: "Allow"
-        Action:
-          - "xray:PutTraceSegments"
-          - "xray:PutTelemetryRecords"
-        Resource:
-          - "*"
 
 
   # TODO: Configure this function
@@ -101,26 +122,20 @@ functions:
           - dynamodb:GetItem
           - dynamodb:DeleteItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: "Allow"
-        Action:
-          - "xray:PutTraceSegments"
-          - "xray:PutTelemetryRecords"
-        Resource:
-          - "*"
 
 
   # TODO: Configure this function
-  GenerateUploadUrl:
-    handler: src/lambda/http/generateUploadUrl.handler
-    events:
-      - http:
-          method: post
-          path: todos/{todoId}/attachment
-          authorizer: Auth
-          cors: true
-          request:
-            schemas:
-              application/json: ${file(models/create-file-request.json)}
+  # GenerateUploadUrl:
+  #   handler: src/lambda/http/generateUploadUrl.handler
+  #   events:
+  #     - http:
+  #         method: post
+  #         path: todos/{todoId}/attachment
+  #         authorizer: Auth
+  #         cors: true
+  #         request:
+  #           schemas:
+  #             application/json: ${file(models/create-file-request.json)}
 
 
 resources:

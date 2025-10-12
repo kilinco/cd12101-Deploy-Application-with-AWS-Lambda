@@ -18,6 +18,7 @@ import cors from '@middy/http-cors'
 import httpErrorHandler from '@middy/http-error-handler'
 import { getUserId } from '../utils.mjs' 
 import { updateTodo, getTodo } from '../../businessLogic/todos.mjs'
+import createError from 'http-errors'
 import { createLogger } from '../../utils/logger.mjs'
 
 const logger = createLogger('http')
@@ -30,45 +31,22 @@ export const handler = middy()
     })
   )
   .handler(async (event) => {
-    try {
-      const userId = getUserId(event)
+    const userId = getUserId(event)
 
-      logger.info('Processing event: ', event)
-      const todoId = event.pathParameters.todoId
-      const todo = await getTodo(todoId, userId)
+    logger.info('Processing event: ', event)
+    const todoId = event.pathParameters.todoId
+    const todo = await getTodo(todoId, userId)
 
-      // Check if todo item exists
-      if (!todo.Item) {
-        return {
-          statusCode: 404,
-          body: JSON.stringify({
-            error: 'Todo not found'
-          })
-        }
-      }
+    // Check if todo item exists
+    if (!todo.Item) {
+      throw createError(404, 'Todo not found')
+    }
 
-      const updatedTodo = JSON.parse(event.body)
-      await updateTodo(todoId, userId, updatedTodo)
-      return {
-        statusCode: 200
-      }
-    } catch (e) {
-      logger.error('Error updating todo', { error: e.message })
-      // Handle JSON parsing errors
-      if (e instanceof SyntaxError) {
-        return { 
-          statusCode: 400, 
-          body: JSON.stringify({ 
-            error: 'Invalid JSON in request body' 
-          }) 
-        }
-      }
-      // Handle other potential errors from business logic or AWS SDK
-      return {
-        statusCode: 503,
-        body: JSON.stringify({
-          error: 'Service is temporarily unavailable, please try again later.'
-        })
-      }
+    const updatedTodo = event.body
+    await updateTodo(todoId, userId, updatedTodo)
+
+    return {
+      statusCode: 200,
+      body: ''
     }
   })
