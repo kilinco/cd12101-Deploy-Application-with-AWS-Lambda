@@ -23,10 +23,7 @@ export async function createTodo(createTodoRequest, userId) {
 }
 
 export async function getTodo(todoId, userId) {
-  return await todoAccess.getTodo({
-    todoId: todoId,
-    userId: userId
-  })
+  return await todoAccess.getTodo(todoId,userId)
 }
 
 export async function updateTodo(todoId, userId, updateTodoRequest) {

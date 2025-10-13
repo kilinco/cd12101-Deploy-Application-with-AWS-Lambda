@@ -34,16 +34,23 @@ export const handler = middy()
     const userId = getUserId(event)
 
     logger.info('Processing event: ', event)
-    const todoId = event.pathParameters.todoId
+    const todoId = String(event.pathParameters.todoId)
     const todo = await getTodo(todoId, userId)
 
     // Check if todo item exists
-    if (!todo.Item) {
+    if (!todo) {
       throw createError(404, 'Todo not found')
     }
 
-    const updatedTodo = event.body
-    await updateTodo(todoId, userId, updatedTodo)
+    const updatedTodo = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+
+    const todoToUpdate = {
+      name: updatedTodo.name !== undefined ? updatedTodo.name : todo.name,
+      dueDate: updatedTodo.dueDate !== undefined ? updatedTodo.dueDate : todo.dueDate,
+      done: updatedTodo.done !== undefined ? updatedTodo.done : todo.done
+    }
+
+    await updateTodo(todoId, userId, todoToUpdate)
 
     return {
       statusCode: 200,

@@ -17,7 +17,7 @@ export const handler = middy()
   .handler(async (event) => {
     logger.info('Processing event: ', event)
 
-    const newTodo = event.body
+    const newTodo = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
     const userId = getUserId(event)
     const newItem = await createTodo(newTodo, userId)
 

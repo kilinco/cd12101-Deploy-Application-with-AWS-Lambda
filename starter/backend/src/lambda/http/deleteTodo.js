@@ -24,7 +24,7 @@ export const handler = middy()
     const todo = await getTodo(todoId, userId)
 
     // Check if todo item exists
-    if (!todo.Item) {
+    if (!todo) {
       throw createError(404, 'Todo not found')
     }
 

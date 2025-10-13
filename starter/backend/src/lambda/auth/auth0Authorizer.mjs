@@ -1,14 +1,14 @@
-import Axios from 'axios'
-import jsonwebtoken from 'jsonwebtoken'
-import { createLogger } from '../../utils/logger.mjs'
+import axios from 'axios';
+import jsonwebtoken from 'jsonwebtoken';
+import { createLogger } from '../../utils/logger.mjs';
 
-const logger = createLogger('auth')
+const logger = createLogger('auth');
 
-const jwksUrl = 'https://test-endpoint.auth0.com/.well-known/jwks.json'
+const jwksUrl = 'https://dev-ol326uhiocrmop0u.us.auth0.com/.well-known/jwks.json';
 
 export async function handler(event) {
   try {
-    const jwtToken = await verifyToken(event.authorizationToken)
+    const jwtToken = await verifyToken(event.authorizationToken);
 
     return {
       principalId: jwtToken.sub,
@@ -18,13 +18,13 @@ export async function handler(event) {
           {
             Action: 'execute-api:Invoke',
             Effect: 'Allow',
-            Resource: '*'
-          }
-        ]
-      }
-    }
+            Resource: '*',
+          },
+        ],
+      },
+    };
   } catch (e) {
-    logger.error('User not authorized', { error: e.message })
+    logger.error('User not authorized', { error: e.message, stack: e.stack });
 
     return {
       principalId: 'user',
@@ -34,49 +34,52 @@ export async function handler(event) {
           {
             Action: 'execute-api:Invoke',
             Effect: 'Deny',
-            Resource: '*'
-          }
-        ]
-      }
-    }
+            Resource: '*',
+          },
+        ],
+      },
+    };
   }
 }
 
 async function verifyToken(authHeader) {
-  const token = getToken(authHeader)
-  const jwt = jsonwebtoken.decode(token, { complete: true })
+  const token = getToken(authHeader);
+  const jwt = jsonwebtoken.decode(token, { complete: true });
 
   if (!jwt) {
-    throw new Error("Invalid token");
+    throw new Error('Invalid token');
   }
 
-  const cert = getCertificate(jwt.header.kid);
+  const cert = await getCertificate(jwt.header.kid);
 
-  return jsonwebtoken.verify(token, cert, { algorithms: ['RS256'] });
+  return jsonwebtoken.verify(token, cert, {
+    algorithms: ['RS256'],
+    issuer: 'https://dev-ol326uhiocrmop0u.us.auth0.com/',
+    audience: 'https://dev-ol326uhiocrmop0u.us.auth0.com/api/v2/',
+  });
 }
 
-
 function getToken(authHeader) {
-  if (!authHeader) throw new Error('No authentication header')
+  if (!authHeader) throw new Error('No authentication header');
 
   if (!authHeader.toLowerCase().startsWith('bearer '))
-    throw new Error('Invalid authentication header')
+    throw new Error('Invalid authentication header');
 
-  const split = authHeader.split(' ')
-  const token = split[1]
+  const split = authHeader.split(' ');
+  const token = split[1];
 
-  return token
+  return token;
 }
 
 async function getCertificate(key_id) {
-  // Retrieve the certificate from endpoint
-  const response = await Axios.get(jwksUrl);
+  const response = await axios.get(jwksUrl);
   const keys = response.data.keys;
-  const signingKey = keys.find(key => key.kid === key_id);
+  const signingKey = keys.find((key) => key.kid === key_id);
 
-  if(!signingKey) {
-    throw new Error("Invalid signing key");
+  if (!signingKey) {
+    throw new Error('Invalid signing key');
   }
+
   const cert = signingKey.x5c[0];
   return `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
 }

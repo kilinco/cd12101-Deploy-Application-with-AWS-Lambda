@@ -1,18 +1,15 @@
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-import AWSXRay from 'aws-xray-sdk-core'
-import { createLogger } from '../../utils/logger.mjs'
+import { createDynamoDbClient } from '../utils/awsClient.mjs';
+
+import { createLogger } from '../utils/logger.mjs'
 
 const logger = createLogger('dataLayer')
 
 export class TodoAccess {
   constructor(
-    documentClient = AWSXRay.captureAWSv3Client(new DynamoDB()),
     todosTable = process.env.TODOS_TABLE
   ) {
-    this.documentClient = documentClient
     this.todosTable = todosTable
-    this.dynamoDbClient = DynamoDBDocument.from(this.documentClient)
+    this.dynamoDbClient = createDynamoDbClient();
   }
 
   async getAllTodos(userId) {
@@ -25,7 +22,7 @@ export class TodoAccess {
         ':userId': userId
       }
     })
-    return result.Items
+    return result.Items || []
   }
 
   async createTodo(todo) {
@@ -38,7 +35,7 @@ export class TodoAccess {
   }
   
   async getTodo(todoId, userId){
-    logger.info(`Retrieving todo with id ${todoId}`)
+    logger.info(`Retrieving todo with id ${todoId} for user ${userId}`)
     const result = await this.dynamoDbClient.get({
       TableName: this.todosTable,
       Key: {
@@ -46,12 +43,12 @@ export class TodoAccess {
         todoId: todoId
       }
     })
-    return result;
+    return result.Item;
   }
 
 
   async updateTodo(todoId, userId, updatedTodo) {
-    logger.info(`Updating todo with id ${todoId} for user ${userId}`)
+    logger.info(`Updating todo with id ${todoId} for user ${userId}`, updatedTodo)
 
     await this.dynamoDbClient.update({
       TableName: this.todosTable,
