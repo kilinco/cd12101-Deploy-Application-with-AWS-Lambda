@@ -1,11 +1,21 @@
 import * as uuid from 'uuid'
 
 import { TodoAccess } from '../dataLayer/todosAccess.mjs'
+import { getDownloadUrl } from '../fileStorage/attachmentUtils.mjs'
 
 const todoAccess = new TodoAccess()
 
 export async function getAllTodos(userId) {
-  return todoAccess.getAllTodos(userId)
+  const result = await todoAccess.getAllTodos(userId)
+  const todos = await Promise.all(result.map(async (todo) => {
+    if (todo.hasFile) {
+      todo.attachmentUrl = await getDownloadUrl(todo.todoId, userId)
+    } else {
+      todo.attachmentUrl = ''
+    }
+    return todo
+  }))
+  return todos
 }
 
 export async function createTodo(createTodoRequest, userId) {
@@ -18,7 +28,7 @@ export async function createTodo(createTodoRequest, userId) {
     dueDate: createTodoRequest.dueDate,
     createdAt: new Date().toISOString(),
     done: false,
-    attachmentUrl: ''
+    hasFile: false,
   })
 }
 
@@ -32,4 +42,8 @@ export async function updateTodo(todoId, userId, updateTodoRequest) {
 
 export async function deleteTodo(todoId, userId) {
   return await todoAccess.deleteTodo(todoId, userId);
+}
+
+export async function fileUploaded(todoId, userId) {
+  return await todoAccess.fileUploaded(todoId, userId);
 }

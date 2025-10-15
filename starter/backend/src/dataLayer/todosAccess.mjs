@@ -21,7 +21,8 @@ export class TodoAccess {
       ExpressionAttributeValues: {
         ':userId': userId
       }
-    })
+    });
+
     return result.Items || []
   }
 
@@ -81,5 +82,22 @@ export class TodoAccess {
       }
     })
     return
+  }
+
+  async fileUploaded(todoId, userId) {
+    logger.info(`File was uploaded for todo with id ${todoId} for user ${userId}`)
+
+    await this.dynamoDbClient.update({
+      TableName: this.todosTable,
+      Key: {
+        userId: userId,
+        todoId: todoId
+      },
+      UpdateExpression: "set hasFile = :hasFile",
+      ExpressionAttributeValues: {
+        ":hasFile": true
+      },
+      ReturnValues: "NONE"
+    })
   }
 }
