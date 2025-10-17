@@ -18,6 +18,7 @@ import { NewTodoInput } from './NewTodoInput'
 
 export function Todos() {
   const [deletingTodo, setDeletingTodo] = useState('')
+  const [patchingTodoId, setPatchingTodoId] = useState('')
   function renderTodos() {
     if (loadingTodos) {
       return renderLoading()
@@ -36,6 +37,7 @@ export function Todos() {
                 <Checkbox
                   onChange={() => onTodoCheck(pos)}
                   checked={todo.done}
+                  disabled={patchingTodoId === todo.todoId}
                 />
               </Grid.Column>
               <Grid.Column width={10} verticalAlign="middle">
@@ -96,8 +98,12 @@ export function Todos() {
   }
 
   async function onTodoCheck(pos) {
+    if (patchingTodoId) {
+      return
+    }
     try {
       const todo = todos[pos]
+      setPatchingTodoId(todo.todoId)
       const accessToken = await getAccessTokenSilently({
         audience: `https://dev-ol326uhiocrmop0u.us.auth0.com/api/v2/`,
         scope: 'write:todo'
@@ -115,6 +121,8 @@ export function Todos() {
     } catch (e) {
       console.log('Failed to check a TODO', e)
       alert('Todo deletion failed')
+    } finally {
+      setPatchingTodoId('')
     }
   }
 
