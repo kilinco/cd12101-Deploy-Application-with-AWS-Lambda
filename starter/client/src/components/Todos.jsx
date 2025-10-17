@@ -141,7 +141,8 @@ export function Todos() {
         })
         console.log('Access token: ' + accessToken)
         const todos = await getTodos(accessToken)
-        setTodos(todos)
+        const sortedTodos = todos.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setTodos(sortedTodos)
         setLoadingTodos(false)
       } catch (e) {
         alert(`Failed to fetch todos: ${e.message}`)
