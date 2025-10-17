@@ -6,11 +6,16 @@ import { createTodo } from '../api/todos-api'
 
 export function NewTodoInput({ onNewTodo }) {
   const [newTodoName, setNewTodoName] = useState('')
+  const [creatingTodo, setCreatingTodo] = useState(false)
 
   const { getAccessTokenSilently } = useAuth0()
 
   const onTodoCreate = async (event) => {
+    if (creatingTodo) {
+      return
+    }
     try {
+      setCreatingTodo(true)
       const accessToken = await getAccessTokenSilently({
         audience: `https://dev-ol326uhiocrmop0u.us.auth0.com/api/v2/`,
         scope: 'write:todos'
@@ -21,10 +26,11 @@ export function NewTodoInput({ onNewTodo }) {
         dueDate
       })
       onNewTodo(createdTodo)
-      setNewTodoName('')
     } catch (e) {
       console.log('Failed to created a new TODO', e)
       alert('Todo creation failed')
+    } finally {
+      setCreatingTodo(false)
     }
   }
 
@@ -37,7 +43,8 @@ export function NewTodoInput({ onNewTodo }) {
             labelPosition: 'left',
             icon: 'add',
             content: 'New task',
-            onClick: onTodoCreate
+            onClick: onTodoCreate,
+            disabled: creatingTodo
           }}
           fluid
           actionPosition="left"
