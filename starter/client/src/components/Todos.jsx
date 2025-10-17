@@ -17,6 +17,7 @@ import { deleteTodo, getTodos, patchTodo } from '../api/todos-api'
 import { NewTodoInput } from './NewTodoInput'
 
 export function Todos() {
+  const [deletingTodo, setDeletingTodo] = useState('')
   function renderTodos() {
     if (loadingTodos) {
       return renderLoading()
@@ -56,6 +57,7 @@ export function Todos() {
                 <Button
                   icon
                   color="red"
+                  loading={deletingTodo === todo.todoId}
                   onClick={() => onTodoDelete(todo.todoId)}
                 >
                   <Icon name="delete" />
@@ -75,7 +77,11 @@ export function Todos() {
   }
 
   async function onTodoDelete(todoId) {
+    if (deletingTodo) {
+      return
+    }
     try {
+      setDeletingTodo(todoId)
       const accessToken = await getAccessTokenSilently({
         audience: `https://dev-ol326uhiocrmop0u.us.auth0.com/api/v2/`,
         scope: 'delete:todo'
@@ -84,6 +90,8 @@ export function Todos() {
       setTodos(todos.filter((todo) => todo.todoId !== todoId))
     } catch (e) {
       alert('Todo deletion failed')
+    } finally {
+      setDeletingTodo('')
     }
   }
 

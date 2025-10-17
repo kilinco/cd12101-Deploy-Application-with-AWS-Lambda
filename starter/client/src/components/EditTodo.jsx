@@ -1,29 +1,14 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import React, { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, Form } from 'semantic-ui-react'
+import { Button, Form, Progress } from 'semantic-ui-react'
 import { getUploadUrl, uploadFile } from '../api/todos-api'
 
-const UploadState = {
-  NoUpload: 'NoUpload',
-  FetchingPresignedUrl: 'FetchingPresignedUrl',
-  UploadingFile: 'UploadingFile'
-}
-
 export function EditTodo() {
-  function renderButton() {
-    return (
-      <div>
-        {uploadState === UploadState.FetchingPresignedUrl && (
-          <p>Uploading image metadata</p>
-        )}
-        {uploadState === UploadState.UploadingFile && <p>Uploading file</p>}
-        <Button loading={uploadState !== UploadState.NoUpload} type="submit">
-          Upload
-        </Button>
-      </div>
-    )
-  }
+  const [file, setFile] = useState(undefined)
+  const [uploadState, setUploadState] = useState(0)
+  const { getAccessTokenSilently } = useAuth0()
+  const { todoId } = useParams()
 
   function handleFileChange(event) {
     const files = event.target.files
@@ -41,28 +26,23 @@ export function EditTodo() {
         return
       }
 
-      setUploadState(UploadState.FetchingPresignedUrl)
       const accessToken = await getAccessTokenSilently({
         audience: `https://dev-ol326uhiocrmop0u.us.auth0.com/api/v2/`,
         scope: 'write:todos'
       })
+      setUploadState(10)
       const uploadUrl = await getUploadUrl(accessToken, todoId)
 
-      setUploadState(UploadState.UploadingFile)
+      setUploadState(50)
       await uploadFile(uploadUrl, file)
+      setUploadState(100)
 
       alert('File was uploaded!')
     } catch (e) {
       alert('Could not upload a file: ' + e.message)
-    } finally {
-      setUploadState(UploadState.NoUpload)
+      setUploadState(0)
     }
   }
-
-  const [file, setFile] = useState(undefined)
-  const [uploadState, setUploadState] = useState(UploadState.NoUpload)
-  const { getAccessTokenSilently } = useAuth0()
-  const { todoId } = useParams()
 
   return (
     <div>
@@ -79,7 +59,13 @@ export function EditTodo() {
           />
         </Form.Field>
 
-        {renderButton()}
+        {uploadState > 0 && (
+          <Progress percent={uploadState} indicating progress success />
+        )}
+
+        <Button loading={uploadState > 0 && uploadState < 100} type="submit">
+          Upload
+        </Button>
       </Form>
     </div>
   )
